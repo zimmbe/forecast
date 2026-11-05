@@ -11,6 +11,7 @@ pub enum CellFormat {
     Integer,
     Date,
     Euro,
+    Percentage,
 }
 
 pub struct Formats {
@@ -21,6 +22,7 @@ pub struct Formats {
     pub integer: Format,
     pub date: Format,
     pub euro: Format,
+    pub percentage: Format,
 }
 
 impl Formats {
@@ -54,6 +56,10 @@ impl Formats {
                 .set_font_name(font_name)
                 .set_font_size(10)
                 .set_num_format("#,##0.00 €"),
+            percentage: Format::new()
+                .set_font_name(font_name)
+                .set_font_size(10)
+                .set_num_format("0.00 %"),
         }
     }
 
@@ -66,6 +72,7 @@ impl Formats {
             CellFormat::Integer => &self.integer,
             CellFormat::Date => &self.date,
             CellFormat::Euro => &self.euro,
+            CellFormat::Percentage => &self.percentage,
         }
     }
 }
@@ -78,6 +85,7 @@ impl From<&ColumnType> for CellFormat {
             ColumnType::Number => CellFormat::Number,
             ColumnType::Date => CellFormat::Date,
             ColumnType::Euro => CellFormat::Euro,
+            ColumnType::Percentage => CellFormat::Percentage,
         }
     }
 }

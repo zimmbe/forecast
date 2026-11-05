@@ -11,15 +11,15 @@ use utils::write;
 
 use crate::utils::data_xlsx::ColumnType;
 use crate::utils::data_xlsx::DataExt;
- 
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::new()
         .filter_level(log::LevelFilter::Debug)
         .init();
     info!("start forecast");
 
-    let file_in: &Path = Path::new("test.xlsx");
-    let file_out: &Path = Path::new("out.xlsx");
+    let file_in: &Path = Path::new("input\\test.xlsx");
+    let file_out: &Path = Path::new("output\\out.xlsx");
     let table = "Forecast";
     debug!("file: {:?}", file_in);
     let formats = formats::Formats::new();
@@ -83,17 +83,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     // add calculation results to the new table
     new_table.add_column_values(6, values)?;
+    new_table.add_column("Perc.", ColumnType::Percentage)?;
+    new_table.set_value("Perc.", 0, Data::Float(0.2))?;
+    new_table.set_value("Perc.", 1, Data::Float(0.3333))?;
     info!("new_table: {:?}", new_table);
 
     // write new excel file
     let mut writer = write::Writer::new();
     {
         let mut sheet = writer.add_worksheet(table)?;
+        
         sheet.write_table(&new_table, &formats)?;
         sheet.set_column_width(0, 10)?;
-        for i in 1..num_cols as u16 {
+        for i in 1..new_table.columns().len() as u16 {
             sheet.set_column_width(i, 15)?;
-    }
+        }
     }
     debug!("file: {:?}", file_out);
     writer.save(file_out)?;
