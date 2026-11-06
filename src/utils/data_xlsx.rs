@@ -7,20 +7,28 @@ pub enum ColumnType {
     Integer,      // int
     Number,       // int or float
     Date,
+    Time, 
+    DateTime, 
+    Duration, 
     Euro,         // int or float
     Percentage,   // enter as float, 0.25 = 25.00 %
+    Bool, 
 }
 
 impl ColumnType {
-    // mappimg of own ColumnType to datatype from calamine
+    // mapping of own ColumnType to datatype from calamine
     pub fn matches(&self, value: &Data) -> bool {
         match self {
             ColumnType::Text => matches!(value, Data::String(_)),
             ColumnType::Integer => matches!(value, Data::Int(_)),
             ColumnType::Number => matches!(value, Data::Float(_) | Data::Int(_)),
             ColumnType::Date => matches!(value, Data::DateTime(_)),
+            ColumnType::Time => matches!(value, Data::DateTime(_)),
+            ColumnType::DateTime => matches!(value, Data::DateTime(_)),
+            ColumnType::Duration => matches!(value, Data::DateTime(_)),
             ColumnType::Euro => matches!(value, Data::Float(_) | Data::Int(_)),
             ColumnType::Percentage => matches!(value, Data::Float(_)),
+            ColumnType::Bool => matches!(value, Data::Bool(_)),
         }
     }
 }
@@ -34,7 +42,15 @@ impl DataExt for Data {
         match self {
             Data::DateTime(dt) => {
                 if let Some(date) = dt.as_datetime() {
-                    date.format("%d.%m.%Y").to_string()
+                    if date.time() == chrono::NaiveTime::default() {    
+                        date.format("%d.%m.%Y").to_string()
+                    } else if dt.to_ymd_hms_milli().0 < 1900 {
+                        date.format("%H:%M:%S").to_string()
+                    } else {
+                         date.format("%d.%m.%Y %H:%M:%S").to_string()
+                    }
+                } else if let Some(date) = dt.as_duration() {
+                    date.to_string()
                 } else {
                     dt.to_string()
                 }
@@ -66,7 +82,7 @@ impl Column {
 
     pub fn push(&mut self, value: Data) -> Result<(), String> {
         if !self.column_type.matches(&value) {
-            return Err(format!("Ungültiger Datentyp für Spalte '{}'", self.heading));
+            return Err(format!("Ungültiger Datentyp für Spalte '{}', '{:?}', val: {:?}", self.heading, self.col_type(), value));
         }
 
         self.values.push(value);
@@ -148,6 +164,34 @@ impl Heading {
             .ok_or_else(|| format!("Spalte {col_idx} existiert nicht"))?;
 
         column.values.extend(values);
+
+        Ok(())
+    }
+
+    #[allow(unused)]
+    pub fn replace_column_values(&mut self, col_idx: usize, values: Vec<Data>) -> Result<(), String> {
+        let column = self
+            .columns
+            .get_mut(col_idx)
+            .ok_or_else(|| format!("Spalte {col_idx} existiert nicht"))?;
+
+        let len_in = values.len();
+        let len_ex = column.values.len();
+
+        if len_in != len_ex {
+            return Err(format!("Ungleiche Vektorlänge: Der neue Vektor {len_in:?} ist nicht genauso groß wie der existierenden Vektor {len_ex:?}"));
+        }
+
+        for value in &values {
+            if !column.column_type.matches(value) {
+                return Err(format!(
+                    "Ungültiger Datentyp für Spalte '{}'",
+                    column.heading
+                ));
+            }
+        }
+
+        column.values = values;
 
         Ok(())
     }
@@ -399,6 +443,35 @@ mod tests {
         assert_eq!(col_vals.values()[0], Data::Int(1));
         assert_eq!(col_vals.values()[1], Data::Int(2));
         assert_eq!(col_vals.values()[2], Data::Int(3));
+    }
+
+    #[test]
+    fn test_replace_column_values() {
+        let mut table = create_test_table();
+        table.add_column_values(1, vec![Data::Float(3.4)]).unwrap();
+
+        table
+            .replace_column_values(1, vec![Data::Float(1.1), Data::Float(2.9)])
+            .unwrap();
+        let col_vals = table.get_column("Stunden").unwrap();
+
+        assert_eq!(col_vals.values().len(), 2);
+        assert_eq!(col_vals.values()[0], Data::Float(1.1));
+        assert_eq!(col_vals.values()[1], Data::Float(2.9));
+    }
+
+    #[test]
+    fn test_replace_column_values_wrong_length() {
+        let mut table = create_test_table();
+
+        let err = table
+            .replace_column_values(1, vec![Data::Float(1.1), Data::Float(2.9)])
+            .unwrap_err();
+
+        assert!(
+            err.contains("Ungleiche Vektorlänge"),
+            "Fehlermeldung lautet: {err}"
+        );
     }
 
     #[test]

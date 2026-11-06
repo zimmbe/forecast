@@ -10,8 +10,12 @@ pub enum CellFormat {
     Number,
     Integer,
     Date,
+    Time,
+    DateTime,
+    Duration,
     Euro,
     Percentage,
+    Bool, 
 }
 
 pub struct Formats {
@@ -21,8 +25,12 @@ pub struct Formats {
     pub number: Format,
     pub integer: Format,
     pub date: Format,
+    pub time: Format,
+    pub datetime: Format,
+    pub duration: Format,
     pub euro: Format,
     pub percentage: Format,
+    pub bool: Format,
 }
 
 impl Formats {
@@ -52,6 +60,18 @@ impl Formats {
                 .set_font_name(font_name)
                 .set_font_size(10)
                 .set_num_format("dd.mm.yyyy"),
+            time: Format::new()
+                .set_font_name(font_name)
+                .set_font_size(10)
+                .set_num_format("hh:mm:ss"),
+            datetime: Format::new()
+                .set_font_name(font_name)
+                .set_font_size(10)
+                .set_num_format("dd.mm.yyyy hh:mm:ss"),
+            duration: Format::new()
+                .set_font_name(font_name)
+                .set_font_size(10)
+                .set_num_format("[h]:mm:ss"),
             euro: Format::new()
                 .set_font_name(font_name)
                 .set_font_size(10)
@@ -60,6 +80,9 @@ impl Formats {
                 .set_font_name(font_name)
                 .set_font_size(10)
                 .set_num_format("0.00 %"),
+            bool: Format::new()
+                .set_font_name(font_name)
+                .set_font_size(10)
         }
     }
 
@@ -71,21 +94,30 @@ impl Formats {
             CellFormat::Number => &self.number,
             CellFormat::Integer => &self.integer,
             CellFormat::Date => &self.date,
+            CellFormat::Time => &self.time,
+            CellFormat::DateTime => &self.datetime,
+            CellFormat::Duration => &self.duration,
             CellFormat::Euro => &self.euro,
             CellFormat::Percentage => &self.percentage,
+            CellFormat::Bool => &self.bool,
         }
     }
 }
 
 impl From<&ColumnType> for CellFormat {
     fn from(col_type: &ColumnType) -> Self {
+        dbg!("from", col_type);
         match col_type {
             ColumnType::Text => CellFormat::Normal,
             ColumnType::Integer => CellFormat::Integer,
             ColumnType::Number => CellFormat::Number,
             ColumnType::Date => CellFormat::Date,
+            ColumnType::Time => CellFormat::Time,
+            ColumnType::DateTime => CellFormat::DateTime,
+            ColumnType::Duration => CellFormat::Duration,
             ColumnType::Euro => CellFormat::Euro,
             ColumnType::Percentage => CellFormat::Percentage,
+            ColumnType::Bool => CellFormat::Bool,
         }
     }
 }

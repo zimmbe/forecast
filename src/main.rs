@@ -18,14 +18,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
     info!("start forecast");
 
-    let file_in: &Path = Path::new("input\\test.xlsx");
-    let file_out: &Path = Path::new("output\\out.xlsx");
+    let file_in: &Path = Path::new("input\\test2.xlsx");
+    let file_out: &Path = Path::new("output\\out2.xlsx");
     let table = "Forecast";
     debug!("file: {:?}", file_in);
     let formats = formats::Formats::new();
 
     // define a new data structure with own headings
-    let num_cols: usize = 7;
+    let num_cols: usize = 11;
     let mut new_table = data::HeadingBuilder::new(num_cols)
         .add("Nr", ColumnType::Integer)
         .add("Name", ColumnType::Text)
@@ -34,8 +34,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add("Datum", ColumnType::Date)
         .add("Stundenpreis", ColumnType::Euro)
         .add("Gesamtpreis", ColumnType::Euro)
+        .add("Boolean", ColumnType::Bool)
+        .add("DateIso", ColumnType::DateTime)
+        .add("DurationIso", ColumnType::Duration)
+        .add("DateTime", ColumnType::Time)
         .build()?;
-    info!("Headings:\n{new_table:?}");
+    //info!("Headings:\n{new_table:?}");
 
     // read excel
     let mut reader = read::TableReader::open(file_in)
@@ -82,7 +86,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
     // add calculation results to the new table
-    new_table.add_column_values(6, values)?;
+    new_table.replace_column_values(6, values)?;
     new_table.add_column("Perc.", ColumnType::Percentage)?;
     new_table.set_value("Perc.", 0, Data::Float(0.2))?;
     new_table.set_value("Perc.", 1, Data::Float(0.3333))?;
@@ -97,6 +101,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         sheet.set_column_width(0, 10)?;
         for i in 1..new_table.columns().len() as u16 {
             sheet.set_column_width(i, 15)?;
+            if i > 1 && i < 4 || i == 7 {
+                sheet.set_column_width(i, 7)?;
+            }
+            if i == 8 {
+                sheet.set_column_width(i, 20)?;
+            }
         }
     }
     debug!("file: {:?}", file_out);

@@ -101,6 +101,30 @@ impl<'a> Sheet<'a> {
                 }
             }
 
+            ColumnType::Time => {
+               if let Data::DateTime(dt) = value {
+                    self.worksheet
+                        .write_with_format(row, col, dt.as_f64(), format)?;
+                }
+            }
+
+            ColumnType::DateTime => {
+               if let Data::DateTime(dt) = value {
+                    self.worksheet
+                        .write_with_format(row, col, dt.as_f64(), format)?;
+                }
+            }
+
+             ColumnType::Duration => {
+               dbg!(col_type);
+               if let Data::DateTime(dt) = value {
+                    let duration = dt.as_duration().unwrap();
+                    dbg!(duration);
+                    self.worksheet
+                        .write_with_format(row, col, dt.as_f64(), format)?;
+                }
+            }
+
             ColumnType::Euro => {
                 if let Some(v) = value.as_f64() {
                     self.worksheet.write_with_format(row, col, v as f64, format)?;
@@ -115,12 +139,16 @@ impl<'a> Sheet<'a> {
                     self.worksheet.write_with_format(row, col, v as f64, format)?;
                 }
             }
+           
+            ColumnType::Bool => {
+                if let Data::Bool(v) = value {
+                    self.worksheet
+                        .write_with_format(row, col, *v, format)?;
+                }
+            }
 
-            // TODO: not yet handled the following cases
-            // Data::Bool, Data:DateTimeIso, Data:DurationIso
-            /*Data::Bool(v) => {
-                self.worksheet.write_with_format(row, col, *v, format)?;
-            }*/
+            // TODO: not yet handled the following cases, because not expected to be 
+            // Data::Data:DateTimeIso, Data:DurationIso
 
             _ => {
                 self.worksheet
@@ -141,8 +169,12 @@ impl<'a> Sheet<'a> {
                 ColumnType::Integer => formats.get(CellFormat::Integer),
                 ColumnType::Number => formats.get(CellFormat::Number),
                 ColumnType::Date => formats.get(CellFormat::Date),
+                ColumnType::Time => formats.get(CellFormat::Time),
+                ColumnType::DateTime => formats.get(CellFormat::DateTime),
+                ColumnType::Duration => formats.get(CellFormat::Duration),
                 ColumnType::Euro => formats.get(CellFormat::Euro),
                 ColumnType::Percentage => formats.get(CellFormat::Percentage),
+                ColumnType::Bool => formats.get(CellFormat::Bool),
             };
 
             self.write_column(col_idx as u16, column.values(), column.col_type(), fmt)?;
