@@ -21,8 +21,15 @@ impl TableReader {
     }
 
     #[allow(unused)]
-    pub fn get_sheet_name(&mut self, n: usize) -> String {
-        self.workbook.sheet_names()[n].to_string()
+    pub fn get_sheet_name(&mut self, n: usize) -> Result<String, Box<dyn std::error::Error>> {
+        self.workbook
+        .sheet_names()
+        .get(n)
+        .map(|s| s.to_string())
+        .ok_or_else(|| {
+            format!("Tabellenblatt mit Index {n} existiert nicht")
+                .into()
+        })
     }
 
     #[allow(unused)]
@@ -65,9 +72,16 @@ impl TableReader {
                 .map(Self::get_column_type)
                 .unwrap_or(ColumnType::Text);
 
+            // TODO: definiere Spaltenüberschriften, die Währung/Euro oder Prozentwerte enthalten
             if let Data::String(s) = cell {
                 if s.eq_ignore_ascii_case("Heading6") {
                     col_type = ColumnType::Euro;
+                }
+                if s.to_lowercase().contains("preis") ||  s.contains("€") {
+                    col_type = ColumnType::Euro;
+                }
+                if s.to_lowercase().contains("perc") ||  s.contains("%") {
+                    col_type = ColumnType::Percentage;
                 }
             }
 
@@ -98,6 +112,7 @@ impl TableReader {
         match cell {
             Data::String(_) => ColumnType::Text,
             Data::Int(_) => ColumnType::Integer,
+            Data::Float(v) if (v.fract().abs()) < f64::EPSILON => ColumnType::Integer,
             Data::Float(_) => ColumnType::Number,
             Data::Bool(_) => ColumnType::Bool,
             Data::DateTime(dt) => { 

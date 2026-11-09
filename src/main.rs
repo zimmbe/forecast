@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let sheets = reader.get_sheets();
     info!("sheets in workbook: {:?}", sheets);
-    let sheet_name = reader.get_sheet_name(1);
+    let sheet_name = reader.get_sheet_name(1)?;
     let (_r, _c) = reader.get_rows_and_cols(&sheet_name);
 
     let read_table = reader.read_table(table)?;
@@ -111,6 +111,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     debug!("file: {:?}", file_out);
     writer.save(file_out)?;
+
+    // open/read the previously written table
+    reader = read::TableReader::open(file_out)
+        .inspect_err(|err| error!("read {:?}: {err:?}", file_out.as_os_str()))?;
+
+    let sheets = reader.get_sheets();
+    info!("sheets in workbook: {:?}", sheets);
+    let sheet_name = reader.get_sheet_name(0)?;
+    let (_r, _c) = reader.get_rows_and_cols(&sheet_name);
+
+    let read_table2 = reader.read_table(table)?;
+    info!("read the wirtten table: {:?}", read_table2);
 
     Ok(())
 }

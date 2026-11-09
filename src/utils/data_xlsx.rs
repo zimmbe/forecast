@@ -81,8 +81,21 @@ impl Column {
     }
 
     pub fn push(&mut self, value: Data) -> Result<(), String> {
-        if !self.column_type.matches(&value) {
-            return Err(format!("Ungültiger Datentyp für Spalte '{}', '{:?}', val: {:?}", self.heading, self.col_type(), value));
+        let valid = match (&self.column_type, &value) {
+            // Integer-Spalten dürfen auch Floats ohne Nachkommastellen enthalten
+            (ColumnType::Integer, Data::Float(v)) => (v.fract().abs()) < f64::EPSILON,
+
+            // Standardprüfung für alle anderen Fälle
+            _ => self.column_type.matches(&value),
+        };
+
+        if !valid {
+            return Err(format!(
+                "Ungültiger Datentyp für Spalte '{}', '{:?}', val: {:?}",
+                self.heading,
+                self.col_type(),
+                value
+            ));
         }
 
         self.values.push(value);
