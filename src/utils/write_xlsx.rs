@@ -1,4 +1,5 @@
 use calamine::{Data, DataType};
+use log::debug;
 use rust_xlsxwriter::*;
 
 use crate::utils::data::{ColumnType, Heading};
@@ -46,7 +47,7 @@ impl<'a> Sheet<'a> {
             .write_with_format(0, col, text, formats.get(CellFormat::Header))?;
 
         Ok(())
-    }   
+    }
 
     #[allow(unused)]
     pub fn write_cell(
@@ -61,14 +62,13 @@ impl<'a> Sheet<'a> {
             ColumnType::Integer => {
                 let v = value.as_i64().ok_or_else(|| {
                     format!(
-                        "ColumnType::Integer erwartet Integer, erhalten: {:?}",
+                        "ColumnType::Integer expects Data::Int, received: {:?}",
                         value
                     )
                 })?;
 
                 self.worksheet.write_with_format(row, col, v, format)?;
             }
-            
 
             ColumnType::Number => {
                 if let Some(v) = value.as_f64() {
@@ -77,7 +77,7 @@ impl<'a> Sheet<'a> {
                     self.worksheet.write_with_format(row, col, v, format)?;
                 } else {
                     return Err(format!(
-                        "ColumnType::Number erwartet f64 oder i64, erhalten: {:?}",
+                        "ColumnType::Number expected f64 oder i64, received: {:?}",
                         value
                     )
                     .into());
@@ -86,81 +86,67 @@ impl<'a> Sheet<'a> {
 
             ColumnType::Text => {
                 let v = value.as_string().ok_or_else(|| {
-                    format!(
-                        "ColumnType::Text erwartet String, erhalten: {:?}",
-                        value
-                    )
+                    format!("ColumnType::Text expected String, received: {:?}", value)
                 })?;
 
                 self.worksheet.write_with_format(row, col, v, format)?;
-            }          
+            }
 
             ColumnType::Date => {
-               /*if let Data::DateTime(dt) = value {
-                    self.worksheet
-                        .write_with_format(row, col, dt.as_f64(), format)?;
-                }*/
                 let dt = match value {
-                    Data::DateTime(dt) => {
-                        dt
-                    }
+                    Data::DateTime(dt) => dt,
                     _ => {
                         return Err(format!(
-                            "ColumnType::Date erwartet Data::DateTime, erhalten: {:?}",
+                            "ColumnType::Date expected Data::DateTime, received: {:?}",
                             value
                         )
                         .into());
                     }
-                };           
+                };
 
-                self.worksheet.write_with_format(row, col, dt.as_f64(), format)?;
+                self.worksheet
+                    .write_with_format(row, col, dt.as_f64(), format)?;
             }
 
             ColumnType::Time => {
-               /*if let Data::DateTime(dt) = value {
-                    self.worksheet
-                        .write_with_format(row, col, dt.as_f64(), format)?;
-                }*/
                 let dt = match value {
                     Data::DateTime(dt) => dt,
                     _ => {
                         return Err(format!(
-                            "ColumnType::Time erwartet Data::DateTime, erhalten: {:?}",
+                            "ColumnType::Time expected Data::DateTime, received: {:?}",
                             value
                         )
                         .into());
                     }
                 };
 
-                self.worksheet.write_with_format(row, col, dt.as_f64(), format)?;
+                self.worksheet
+                    .write_with_format(row, col, dt.as_f64(), format)?;
             }
 
             ColumnType::DateTime => {
-               /*if let Data::DateTime(dt) = value {
-                    self.worksheet
-                        .write_with_format(row, col, dt.as_f64(), format)?;
-                }*/
                 let dt = match value {
                     Data::DateTime(dt) => dt,
                     _ => {
                         return Err(format!(
-                            "ColumnType::DateTime erwartet Data::DateTime, erhalten: {:?}",
+                            "ColumnType::DateTime expected Data::DateTime, received: {:?}",
                             value
                         )
                         .into());
                     }
                 };
 
-                self.worksheet.write_with_format(row, col, dt.as_f64(), format)?;
+                self.worksheet
+                    .write_with_format(row, col, dt.as_f64(), format)?;
             }
 
             ColumnType::Duration => {
-               dbg!(col_type);
+                dbg!(col_type);
                 let dt = match value {
                     Data::DateTime(dt) => dt,
                     _ => {
                         return Err(format!(
-                            "ColumnType::Duration erwartet Data::DateTime, erhalten: {:?}",
+                            "ColumnType::Duration expected Data::DateTime, received: {:?}",
                             value
                         )
                         .into());
@@ -169,7 +155,7 @@ impl<'a> Sheet<'a> {
 
                 let duration = dt.as_duration().ok_or_else(|| {
                     format!(
-                        "ColumnType::Duration erwartet eine Duration, erhalten: {:?}",
+                        "ColumnType::Duration expected eine Duration, received: {:?}",
                         dt
                     )
                 })?;
@@ -187,7 +173,7 @@ impl<'a> Sheet<'a> {
                     self.worksheet.write_with_format(row, col, v, format)?;
                 } else {
                     return Err(format!(
-                        "ColumnType::Euro erwartet Data::Floa oder Data::Int, erhalten: {:?}",
+                        "ColumnType::Euro expected Data::Floa oder Data::Int, received: {:?}",
                         value
                     )
                     .into());
@@ -199,7 +185,7 @@ impl<'a> Sheet<'a> {
                     Data::Float(v) => *v,
                     _ => {
                         return Err(format!(
-                            "ColumnType::Percentage erwartet Data::Float, erhalten: {:?}",
+                            "ColumnType::Percentage expected Data::Float, received: {:?}",
                             value
                         )
                         .into());
@@ -207,13 +193,13 @@ impl<'a> Sheet<'a> {
                 };
                 self.worksheet.write_with_format(row, col, v, format)?;
             }
-           
+
             ColumnType::Bool => {
                 let v = match value {
                     Data::Bool(v) => *v,
                     _ => {
                         return Err(format!(
-                            "ColumnType::Bool erwartet Data::Bool, erhalten: {:?}",
+                            "ColumnType::Bool expected Data::Bool, received: {:?}",
                             value
                         )
                         .into());
@@ -223,10 +209,11 @@ impl<'a> Sheet<'a> {
                 self.worksheet.write_with_format(row, col, v, format)?;
             }
 
-            // TODO: not yet handled the following cases, because not expected to be 
+            // TODO: not yet handled the following cases, because not expected to be availble
             // Data::Data:DateTimeIso, Data:DurationIso
-
+            // these types do not occur in real excel file, comes from Libre Office, ODS etc.
             _ => {
+                debug!("Unhandled column type {:?}, write as Text", col_type);
                 self.worksheet
                     .write_with_format(row, col, value.to_string(), format)?;
             }
@@ -247,10 +234,14 @@ impl<'a> Sheet<'a> {
             self.write_cell(row as u32 + 1, col, value, col_type, format)?;
         }
         Ok(())
-    }   
+    }
 
     #[allow(unused)]
-    pub fn write_table(&mut self, table: &Heading, formats: &Formats) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn write_table(
+        &mut self,
+        table: &Heading,
+        formats: &Formats,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         for (col_idx, column) in table.columns().iter().enumerate() {
             self.write_header(col_idx as u16, column.heading(), formats)?;
 
@@ -278,16 +269,142 @@ impl<'a> Sheet<'a> {
         self.worksheet.set_column_width(col, width)
     }
 
-    /*pub fn match_column_tpye_with_value(&mut self, col_type: ColumnType, value: Data) -> Result<(), Error> {
-        let cell_type = match col_type {
-            ColumnType::Text => matches(value.is_string()),
-            ColumnType::Integer => value.is_int(),
-            ColumnType::Number => value.is_float(),
-            ColumnType::Date => value.is_datetime(),
-            ColumnType::Time => value.is_datetime(),
-            ColumnType::DateTime => value.is_datetime(),
-            ColumnType::Duration => value.is_datetime(),
-            ColumnType::Euro => value.is_int(),
+    #[allow(unused)]
+    pub fn set_column_widths(&mut self, col_from: u16, col_to: u16, width: u32) -> Result<(), XlsxError> {
+        for col in col_from..=col_to {
+            self.worksheet.set_column_width(col, width)?;
         }
-    }*/
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::data;
+    use calamine::Data;
+
+    fn create_test_environment() -> (Writer, Formats) {
+        (Writer::new(), Formats::new())
+    }
+
+    fn create_test_sheet<'a>(
+        col_type: ColumnType,
+        cell_format: CellFormat,
+        value: &Data,
+    ) -> Result<(), Box<dyn std::error::Error>> /*(Sheet<'a>, &Format)*/ {
+        let (mut writer, fmts) = create_test_environment();
+        let mut sheet = writer.add_worksheet("Tab1").unwrap();
+        let fmt = fmts.get(cell_format);
+        sheet.write_cell(
+            0, 0, value, //&Data::Float(1.0),
+            &col_type, fmt,
+        )
+    }
+
+    #[test]
+    fn test_number_accepts_int() {
+        let res = create_test_sheet(ColumnType::Integer, CellFormat::Integer, &Data::Int(42));
+
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_euro_accepts_int() {
+        let res = create_test_sheet(ColumnType::Euro, CellFormat::Euro, &Data::Int(42));
+
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_euro_accepts_float() {
+        let res = create_test_sheet(ColumnType::Euro, CellFormat::Euro, &Data::Float(5.87));
+
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_percentage_accepts_float() {
+        let res = create_test_sheet(
+            ColumnType::Percentage,
+            CellFormat::Percentage,
+            &Data::Float(0.3333),
+        );
+
+        assert!(res.is_ok());
+    }
+
+    #[test]
+    fn test_percentage_rejects_int() {
+        let res = create_test_sheet(
+            ColumnType::Percentage,
+            CellFormat::Percentage,
+            &Data::Int(2),
+        );
+
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn test_write_integer_with_string() {
+        let err = create_test_sheet(
+            ColumnType::Integer,
+            CellFormat::Integer,
+            &Data::String("abc".into()),
+        )
+        .unwrap_err();
+
+        assert!(err.to_string().contains("ColumnType::Integer"));
+    }
+
+    #[test]
+    fn test_write_bool_with_float() {
+        let err =
+            create_test_sheet(ColumnType::Bool, CellFormat::Bool, &Data::Float(1.0)).unwrap_err();
+
+        assert!(err.to_string().contains("ColumnType::Bool"));
+    }
+
+    #[test]
+    fn test_write_date_with_string() {
+        let err = create_test_sheet(
+            ColumnType::Date,
+            CellFormat::Date,
+            &Data::String("2026-01-01".into()),
+        )
+        .unwrap_err();
+
+        assert!(err.to_string().contains("ColumnType::Date"));
+    }
+
+    #[test]
+    fn test_write_column_propagates_error() {
+        let values = vec![Data::Int(1), Data::String("oops".into())];
+        let (mut writer, fmts) = create_test_environment();
+        let mut sheet = writer.add_worksheet("Tab1").unwrap();
+        let fmt = fmts.get(CellFormat::Integer);
+        let err = sheet
+            .write_column(0, &values, &ColumnType::Integer, &fmt)
+            .unwrap_err();
+
+        assert!(err.to_string().contains("ColumnType") && err.to_string().contains("expects"));
+    }
+
+    #[test]
+    fn test_write_table_propagates_error() {
+        let mut builder = data::HeadingBuilder::new(1);
+
+        builder = builder.add("Nr", ColumnType::Integer);
+
+        let mut table = builder.build().unwrap();
+
+        let err = table
+            .column_mut(0)
+            .unwrap()
+            .push(Data::String("abc".into()))
+            .unwrap_err();
+
+        assert!(err.to_string().contains("Invalid data type") && err.to_string().contains("abc"));
+    }
 }

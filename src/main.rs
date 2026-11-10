@@ -7,6 +7,7 @@ use std::path::Path;
 use utils::data_xlsx as data;
 use utils::formats;
 use utils::read;
+use utils::time;
 use utils::write;
 
 use crate::utils::data_xlsx::ColumnType;
@@ -23,6 +24,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let table = "Forecast";
     debug!("file: {:?}", file_in);
     let formats = formats::Formats::new();
+    let mut config = read::Config::new();
+    // heading names/strings for currency
+    config.add_currency_string("preis");
+    config.add_currency_string("€");
+    // heading names/strings for percentage
+    config.add_percentage_string("perc");
+    config.add_percentage_string("%");
 
     // define a new data structure with own headings
     let num_cols: usize = 11;
@@ -39,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add("DurationIso", ColumnType::Duration)
         .add("DateTime", ColumnType::Time)
         .build()?;
-    //info!("Headings:\n{new_table:?}");
+    info!("Headings:\n{new_table:?}");
 
     // read excel
     let mut reader = read::TableReader::open(file_in)
@@ -50,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sheet_name = reader.get_sheet_name(1)?;
     let (_r, _c) = reader.get_rows_and_cols(&sheet_name);
 
-    let read_table = reader.read_table(table)?;
+    let read_table = reader.read_table(table, &config)?;
     info!("read_table direct: {:?}", read_table);
     info!("read_table formatted:");
     let mut idx = 0;
@@ -91,12 +99,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     new_table.set_value("Perc.", 0, Data::Float(0.2))?;
     new_table.set_value("Perc.", 1, Data::Float(0.3333))?;
     info!("new_table: {:?}", new_table);
+    // replace a date
+    new_table.set_value("Datum", 1, time::make_date(2026, 11, 6, false)?)?;
 
     // write new excel file
     let mut writer = write::Writer::new();
     {
         let mut sheet = writer.add_worksheet(table)?;
-        
+
         sheet.write_table(&new_table, &formats)?;
         sheet.set_column_width(0, 10)?;
         for i in 1..new_table.columns().len() as u16 {
@@ -112,6 +122,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     debug!("file: {:?}", file_out);
     writer.save(file_out)?;
 
+    // mandatory columns, reuirement from FCT-3
+    config.add_required_column("Nr");
+    config.add_required_column("Name");
+    config.add_required_column("Stunden");
+    config.add_required_column("Faktor");
+    config.add_required_column("Datum");
+
     // open/read the previously written table
     reader = read::TableReader::open(file_out)
         .inspect_err(|err| error!("read {:?}: {err:?}", file_out.as_os_str()))?;
@@ -121,7 +138,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sheet_name = reader.get_sheet_name(0)?;
     let (_r, _c) = reader.get_rows_and_cols(&sheet_name);
 
-    let read_table2 = reader.read_table(table)?;
+    let read_table2 = reader.read_table(table, &config)?;
+    reader.validate_columns(table, &config)?;
     info!("read the wirtten table: {:?}", read_table2);
 
     Ok(())

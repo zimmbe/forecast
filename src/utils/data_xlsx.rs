@@ -4,15 +4,15 @@ use calamine::Data;
 #[derive(Debug, PartialEq)]
 pub enum ColumnType {
     Text,
-    Integer,      // int
-    Number,       // int or float
+    Integer, // int
+    Number,  // int or float
     Date,
-    Time, 
-    DateTime, 
-    Duration, 
-    Euro,         // int or float
-    Percentage,   // enter as float, 0.25 = 25.00 %
-    Bool, 
+    Time,
+    DateTime,
+    Duration,
+    Euro,       // int or float
+    Percentage, // enter as float, 0.25 = 25.00 %
+    Bool,
 }
 
 impl ColumnType {
@@ -42,12 +42,12 @@ impl DataExt for Data {
         match self {
             Data::DateTime(dt) => {
                 if let Some(date) = dt.as_datetime() {
-                    if date.time() == chrono::NaiveTime::default() {    
+                    if date.time() == chrono::NaiveTime::default() {
                         date.format("%d.%m.%Y").to_string()
                     } else if dt.to_ymd_hms_milli().0 < 1900 {
                         date.format("%H:%M:%S").to_string()
                     } else {
-                         date.format("%d.%m.%Y %H:%M:%S").to_string()
+                        date.format("%d.%m.%Y %H:%M:%S").to_string()
                     }
                 } else if let Some(date) = dt.as_duration() {
                     date.to_string()
@@ -82,16 +82,16 @@ impl Column {
 
     pub fn push(&mut self, value: Data) -> Result<(), String> {
         let valid = match (&self.column_type, &value) {
-            // Integer-Spalten dürfen auch Floats ohne Nachkommastellen enthalten
+            // for Integer-Columnn Floats without decimal place are allowed
             (ColumnType::Integer, Data::Float(v)) => (v.fract().abs()) < f64::EPSILON,
 
-            // Standardprüfung für alle anderen Fälle
+            // default column type check for all other cases
             _ => self.column_type.matches(&value),
         };
 
         if !valid {
             return Err(format!(
-                "Ungültiger Datentyp für Spalte '{}', '{:?}', val: {:?}",
+                "Invalid data type in column '{}', '{:?}', val: {:?}",
                 self.heading,
                 self.col_type(),
                 value
@@ -141,21 +141,17 @@ impl Heading {
         let heading = heading.into();
 
         if self.columns.iter().any(|c| c.heading == heading) {
-            return Err(format!("Spalte '{}' existiert bereits", heading));
+            return Err(format!("Column '{}' already exists", heading));
         }
 
         if n > self.columns.len() {
             return Err(format!(
-                "Ungültige Position {n}, maximale Position ist {}",
+                "Invalid position {n}, maximum position is {}",
                 self.columns.len()
             ));
         }
 
-        let row_count = self
-            .columns
-            .first()
-            .map(|c| c.values.len())
-            .unwrap_or(0);
+        let row_count = self.columns.first().map(|c| c.values.len()).unwrap_or(0);
 
         self.columns.insert(
             n,
@@ -174,7 +170,7 @@ impl Heading {
         let column = self
             .columns
             .get_mut(col_idx)
-            .ok_or_else(|| format!("Spalte {col_idx} existiert nicht"))?;
+            .ok_or_else(|| format!("Column {col_idx} doesn't exist"))?;
 
         column.values.extend(values);
 
@@ -182,25 +178,28 @@ impl Heading {
     }
 
     #[allow(unused)]
-    pub fn replace_column_values(&mut self, col_idx: usize, values: Vec<Data>) -> Result<(), String> {
+    pub fn replace_column_values(
+        &mut self,
+        col_idx: usize,
+        values: Vec<Data>,
+    ) -> Result<(), String> {
         let column = self
             .columns
             .get_mut(col_idx)
-            .ok_or_else(|| format!("Spalte {col_idx} existiert nicht"))?;
+            .ok_or_else(|| format!("Column {col_idx} doesn't exis"))?;
 
         let len_in = values.len();
         let len_ex = column.values.len();
 
         if len_in != len_ex {
-            return Err(format!("Ungleiche Vektorlänge: Der neue Vektor {len_in:?} ist nicht genauso groß wie der existierenden Vektor {len_ex:?}"));
+            return Err(format!(
+                "Unequal vector length: new vector {len_in:?} is not the same size as the existing vector {len_ex:?}"
+            ));
         }
 
         for value in &values {
             if !column.column_type.matches(value) {
-                return Err(format!(
-                    "Ungültiger Datentyp für Spalte '{}'",
-                    column.heading
-                ));
+                return Err(format!("Invalid data type for Column '{}'", column.heading));
             }
         }
 
@@ -250,17 +249,21 @@ impl Heading {
     pub fn set_value(&mut self, heading: &str, row: usize, value: Data) -> Result<(), String> {
         let column = self
             .get_column_mut(heading)
-            .ok_or_else(|| format!("Spalte '{heading}' nicht gefunden"))?;
+            .ok_or_else(|| format!("Column '{heading}' not  found"))?;
+
+        if column.values.len() == 0 {
+            return Err(format!("Values vector is empty (len = 0)!"));
+        }
 
         if !column.column_type.matches(&value) {
             return Err(format!(
-                "Ungültiger Datentyp für Spalte '{}': erwartet {:?}, erhalten {:?}",
+                "Invalid data type for Column '{}': expected {:?}, received {:?}",
                 heading, column.column_type, value
             ));
         }
 
         if row >= column.values.len() {
-            return Err(format!("Zeile {row} existiert nicht"));
+            return Err(format!("Row {row} doesn't exist {}", column.values.len()));
         }
 
         column.values[row] = value;
@@ -271,7 +274,7 @@ impl Heading {
     #[allow(unused)]
     pub fn push_value(&mut self, heading: &str, value: Data) -> Result<(), String> {
         self.get_column_mut(heading)
-            .ok_or_else(|| format!("Spalte '{heading}' nicht gefunden"))?
+            .ok_or_else(|| format!("Column '{heading}' not found"))?
             .push(value)
     }
 }
@@ -303,7 +306,7 @@ impl HeadingBuilder {
     pub fn build(self) -> Result<Heading, String> {
         if self.columns.len() != self.max_count {
             return Err(format!(
-                "Erwartet: {}, vorhanden: {}",
+                "Expected: {}, received: {}",
                 self.max_count,
                 self.columns.len()
             ));

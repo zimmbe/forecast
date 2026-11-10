@@ -1,4 +1,4 @@
-use crate::data::ColumnType;
+use crate::utils::data::ColumnType;
 use rust_xlsxwriter::Format;
 
 #[allow(unused)]
@@ -15,7 +15,7 @@ pub enum CellFormat {
     Duration,
     Euro,
     Percentage,
-    Bool, 
+    Bool,
 }
 
 pub struct Formats {
@@ -80,9 +80,7 @@ impl Formats {
                 .set_font_name(font_name)
                 .set_font_size(10)
                 .set_num_format("0.00 %"),
-            bool: Format::new()
-                .set_font_name(font_name)
-                .set_font_size(10)
+            bool: Format::new().set_font_name(font_name).set_font_size(10),
         }
     }
 
