@@ -196,6 +196,14 @@ pub fn calc_excel_date(
     ))
 }
 
+#[allow(unused)]
+pub fn datetime_value(data: &Data) -> f64 {
+        match data {
+            Data::DateTime(dt) => dt.as_f64(),
+            _ => panic!("Expected Data::DateTime"),
+        }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -206,12 +214,12 @@ mod tests {
         let _ = env_logger::builder().filter_level(log::LevelFilter::Debug).is_test(true).try_init();
     } 
 
-    fn datetime_value(data: &Data) -> f64 {
+    /*fn datetime_value(data: &Data) -> f64 {
         match data {
             Data::DateTime(dt) => dt.as_f64(),
             _ => panic!("Expected Data::DateTime"),
         }
-    }
+    }*/
 
     #[test]
     fn test_create_date() {
