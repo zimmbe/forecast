@@ -2,7 +2,7 @@ use calamine::{Data, DataType};
 use log::debug;
 use rust_xlsxwriter::*;
 
-use crate::utils::data::{ColumnType, Heading};
+use crate::utils::data::{ColumnType, Table};
 use crate::utils::formats::{CellFormat, Formats};
 
 pub struct Writer {
@@ -141,7 +141,7 @@ impl<'a> Sheet<'a> {
             }
 
             ColumnType::Duration => {
-                dbg!(col_type);
+                debug!("col_type: {:?}", col_type);
                 let dt = match value {
                     Data::DateTime(dt) => dt,
                     _ => {
@@ -159,8 +159,7 @@ impl<'a> Sheet<'a> {
                         dt
                     )
                 })?;
-
-                dbg!(duration);
+                debug!("duration: {}", duration);
 
                 self.worksheet
                     .write_with_format(row, col, dt.as_f64(), format)?;
@@ -239,7 +238,7 @@ impl<'a> Sheet<'a> {
     #[allow(unused)]
     pub fn write_table(
         &mut self,
-        table: &Heading,
+        table: &Table,
         formats: &Formats,
     ) -> Result<(), Box<dyn std::error::Error>> {
         for (col_idx, column) in table.columns().iter().enumerate() {
@@ -393,7 +392,7 @@ mod tests {
 
     #[test]
     fn test_write_table_propagates_error() {
-        let mut builder = data::HeadingBuilder::new(1);
+        let mut builder = data::TableBuilder::new(1);
 
         builder = builder.add("Nr", ColumnType::Integer);
 

@@ -30,6 +30,38 @@ fn time_serial(hour: u32, minute: u32, second: u32) -> Result<f64, String> {
 
     Ok((hour as f64 * 3600.0 + minute as f64 * 60.0 + second as f64) / 86400.0)
 }
+
+
+/// Create calamine::datatype::Data::DateTime from
+/// 
+/// # Arguments
+/// 
+/// year: i32
+/// 
+/// month: u32
+/// 
+/// day: u32
+/// 
+/// is_1904: bool
+/// 
+/// # Example
+/// 
+/// ```
+/// 
+/// use calamine::DataType;
+/// use forecast::make_date;
+/// let date = make_date(2026, 10, 23, false).unwrap();
+/// assert!(date.is_datetime());
+/// 
+/// ```
+/// 
+///  # Panics
+/// 
+/// ```should_panic
+/// // because month > 12
+/// use forecast::make_date;
+/// make_date(2026, 14, 2, false).unwrap();
+/// ```
 #[allow(unused)]
 pub fn make_date(year: i32, month: u32, day: u32, is_1904: bool) -> Result<Data, String> {
     Ok(Data::DateTime(ExcelDateTime::new(
@@ -39,6 +71,36 @@ pub fn make_date(year: i32, month: u32, day: u32, is_1904: bool) -> Result<Data,
     )))
 }
 
+/// Create calamine::datatype::Data::DateTime from
+/// 
+/// # Arguments
+/// 
+/// hour: i32
+/// 
+/// minute: u32
+/// 
+/// second: u32
+/// 
+/// is_1904: bool
+/// 
+/// # Example
+/// 
+/// ```
+/// 
+/// use calamine::DataType;
+/// use forecast::make_time;
+/// let time = make_time(16, 8, 53, false).unwrap();
+/// assert!(time.is_datetime());
+/// 
+/// ```
+/// 
+///  # Panics
+/// 
+/// ```should_panic
+/// // because hour > 23
+/// use forecast::make_time;
+/// make_time(28, 30, 0, false).unwrap();
+/// ```
 #[allow(unused)]
 pub fn make_time(hour: u32, minute: u32, second: u32, is_1904: bool) -> Result<Data, String> {
     Ok(Data::DateTime(ExcelDateTime::new(
@@ -48,6 +110,34 @@ pub fn make_time(hour: u32, minute: u32, second: u32, is_1904: bool) -> Result<D
     )))
 }
 
+/// Create calamine::datatype::Data::DateTime from
+/// 
+///  # Arguments
+/// 
+/// year: i32
+/// 
+/// month: u32
+/// 
+/// day: u32
+/// 
+/// hour: i32
+/// 
+/// minute: u32
+/// 
+/// second: u32
+/// 
+/// is_1904: bool
+/// 
+/// # Example
+/// 
+/// ```
+/// 
+/// use calamine::DataType;
+/// use forecast::make_datetime;
+/// let datetime = make_datetime(2026, 10, 24, 13, 48, 5, false).unwrap();
+/// assert!(datetime.is_datetime());
+/// 
+/// ```
 #[allow(unused)]
 pub fn make_datetime(
     year: i32,
@@ -112,6 +202,10 @@ mod tests {
     //use calamine::DataType;
     static TEST_EPSILON: f64 = 1e-10;
 
+    fn init_logger() {
+        let _ = env_logger::builder().filter_level(log::LevelFilter::Debug).is_test(true).try_init();
+    } 
+
     fn datetime_value(data: &Data) -> f64 {
         match data {
             Data::DateTime(dt) => dt.as_f64(),
@@ -121,6 +215,7 @@ mod tests {
 
     #[test]
     fn test_create_date() {
+        init_logger();
         let date = make_date(2026, 11, 10, false).unwrap();
         let excel_value = calc_excel_date(2026.0, 11.0, 10.0, 0.0, 0.0, 0.0, false);
 

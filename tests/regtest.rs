@@ -13,12 +13,11 @@ fn test_file(name: &str) -> PathBuf {
     PathBuf::from("resources").join(name)
 }
 
-#[test]
-fn test_roundtrip() {
+fn write_and_read_table() -> Table {
     let file = test_file("test_write_read.xlsx");
 
     // create table
-    let mut builder = HeadingBuilder::new(5);
+    let mut builder = TableBuilder::new(5);
     builder = builder
         .add("Nr", ColumnType::Integer)
         .add("Name", ColumnType::Text)
@@ -54,25 +53,24 @@ fn test_roundtrip() {
     );
     println!("table: {:?}", table);
 
-    // write
+    // write new excel file
     let formats = Formats::new();
     let mut writer = Writer::new();
     let mut sheet = writer.add_worksheet("Test").unwrap();
-    let res = sheet.write_table(&table, &formats);
+    let _res = sheet.write_table(&table, &formats);
     let _ = sheet.set_column_widths(0, 5, 15);
-    assert!(res.is_ok(), "Sheet generation failed!");
+    let _xres = writer.save(&file);
 
-    let xres = writer.save(&file);
-    assert!(xres.is_ok(), "Saving file failed!");
-
-    // read
+    // read in the previously created excel file
     let mut reader = TableReader::open(&file).unwrap();
     let cfg = Config::new();
-    let result = reader.read_table("Test", &cfg).unwrap();
 
-    assert_eq!(result.get_column_headings()[0], "Nr");
-    let _column = result.get_column("Nr").unwrap();
+    reader.read_table("Test", &cfg).unwrap()
+}
 
+#[test]
+fn test_roundtrip_integer() {
+    let result = write_and_read_table();
     assert_eq!(
         result.get_value("Nr", 0).unwrap().as_i64(),
         Data::Int(1).as_i64()

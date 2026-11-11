@@ -2,7 +2,7 @@ use calamine::{Data, Range, Reader, Xlsx, XlsxError, open_workbook};
 use log::{debug, error};
 use std::path::Path;
 
-use crate::utils::data::{ColumnType, Heading, HeadingBuilder};
+use crate::utils::data::{ColumnType, Table, TableBuilder};
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -84,7 +84,7 @@ impl TableReader {
         &mut self,
         table_name: &str,
         cfg: &Config,
-    ) -> Result<Heading, Box<dyn std::error::Error>> {
+    ) -> Result<Table, Box<dyn std::error::Error>> {
         let range = self.workbook.worksheet_range(table_name)?;
 
         let mut rows = range.rows();
@@ -93,7 +93,7 @@ impl TableReader {
 
         let first_row = rows.next().clone().ok_or("No data row available")?;
 
-        let mut builder = HeadingBuilder::new(header_row.len());
+        let mut builder = TableBuilder::new(header_row.len());
 
         for (idx, cell) in header_row.iter().enumerate() {
             let heading = match cell {
@@ -107,14 +107,11 @@ impl TableReader {
                 .unwrap_or(ColumnType::Text);
 
             // TODO: definiere Spaltenüberschriften, die Währung/Euro oder Prozentwerte enthalten
-            if let Data::String(s) = cell {
-                if s.eq_ignore_ascii_case("Heading6") {
+            if let Data::String(str) = cell {
+                if cfg.currency_strings.iter().any(|s| str.contains(s)) {
                     col_type = ColumnType::Euro;
                 }
-                if cfg.currency_strings.contains(&s) {
-                    col_type = ColumnType::Euro;
-                }
-                if cfg.percentage_strings.contains(&s) {
+                if cfg.percentage_strings.iter().any(|s| str.contains(s)) {
                     col_type = ColumnType::Percentage;
                 }
             }

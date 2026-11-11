@@ -33,13 +33,16 @@ impl ColumnType {
     }
 }
 
-pub trait DataExt {
-    fn as_display_string(&self) -> String;
+// trait for read in calamine::Data
+pub trait DataOutput {
+    // defines a formatted output
+    fn as_display_string(&self, col_type: &ColumnType) -> String;
 }
 
-impl DataExt for Data {
-    fn as_display_string(&self) -> String {
+impl DataOutput for Data {
+    fn as_display_string(&self, col_type: &ColumnType) -> String {
         match self {
+            // format date and time
             Data::DateTime(dt) => {
                 if let Some(date) = dt.as_datetime() {
                     if date.time() == chrono::NaiveTime::default() {
@@ -53,6 +56,19 @@ impl DataExt for Data {
                     date.to_string()
                 } else {
                     dt.to_string()
+                }
+            }
+            Data::Float(fv) => {
+                let value = fv.to_string();   
+                // format percentage              
+                if *col_type == ColumnType::Percentage {
+                    let percentage = fv * 100.0;
+                    percentage.to_string() + " %"
+                // format currency/€
+                } else if *col_type == ColumnType::Euro {
+                    value + " €"
+                } else {
+                    self.to_string()
                 }
             }
             _ => self.to_string(),
@@ -109,11 +125,11 @@ impl Column {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Heading {
+pub struct Table {
     columns: Vec<Column>,
 }
 
-impl Heading {
+impl Table {
     pub fn columns(&self) -> &[Column] {
         &self.columns
     }
@@ -279,12 +295,12 @@ impl Heading {
     }
 }
 
-pub struct HeadingBuilder {
+pub struct TableBuilder {
     columns: Vec<(String, ColumnType)>,
     max_count: usize,
 }
 
-impl HeadingBuilder {
+impl TableBuilder {
     pub fn new(max_count: usize) -> Self {
         Self {
             columns: Vec::with_capacity(max_count),
@@ -303,7 +319,7 @@ impl HeadingBuilder {
         self
     }
 
-    pub fn build(self) -> Result<Heading, String> {
+    pub fn build(self) -> Result<Table, String> {
         if self.columns.len() != self.max_count {
             return Err(format!(
                 "Expected: {}, received: {}",
@@ -322,7 +338,7 @@ impl HeadingBuilder {
             })
             .collect();
 
-        Ok(Heading { columns })
+        Ok(Table { columns })
     }
 }
 
@@ -331,14 +347,14 @@ mod tests {
     use super::*;
     use calamine::{Data, DataType};
 
-    fn create_test_builder() -> HeadingBuilder {
-        HeadingBuilder::new(2)
+    fn create_test_builder() -> TableBuilder {
+        TableBuilder::new(2)
             .add("Nr", ColumnType::Integer)
             .add("Name", ColumnType::Text)
     }
 
-    fn create_test_table() -> Heading {
-        let mut table = HeadingBuilder::new(3)
+    fn create_test_table() -> Table {
+        let mut table = TableBuilder::new(3)
             .add("Name", ColumnType::Text)
             .add("Stunden", ColumnType::Number)
             .add("Preis", ColumnType::Euro)
@@ -369,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_build_heading_success() {
-        let heading = HeadingBuilder::new(2)
+        let heading = TableBuilder::new(2)
             .add("Name", ColumnType::Text)
             .add("Preis", ColumnType::Euro)
             .build();
@@ -384,7 +400,7 @@ mod tests {
 
     #[test]
     fn test_build_heading_wrong_column_count() {
-        let result = HeadingBuilder::new(2).add("Name", ColumnType::Text).build();
+        let result = TableBuilder::new(2).add("Name", ColumnType::Text).build();
 
         assert!(result.is_err());
     }
@@ -485,8 +501,8 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            err.contains("Ungleiche Vektorlänge"),
-            "Fehlermeldung lautet: {err}"
+            err.contains("Unequal vector length"),
+            "Error: {err}"
         );
     }
 
@@ -535,8 +551,8 @@ mod tests {
             .unwrap_err();
 
         assert!(
-            err.contains("Ungültiger Datentyp"),
-            "Fehlermeldung lautet: {err}"
+            err.contains("Invalid data type"),
+            "Error: {err}"
         );
     }
 
@@ -558,8 +574,8 @@ mod tests {
         let err = table.push_value("Name", Data::Float(3.4)).unwrap_err();
 
         assert!(
-            err.contains("Ungültiger Datentyp"),
-            "Fehlermeldung lautet: {err}"
+            err.contains("Invalid data type"),
+            "Error: {err}"
         );
     }
 }

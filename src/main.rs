@@ -1,17 +1,16 @@
 mod utils;
 
 use log::{debug, error, info};
-//use rust_xlsxwriter::ExcelDateTime;
 use calamine::{Data, DataType};
 use std::path::Path;
-use utils::data_xlsx as data;
+use utils::data;
 use utils::formats;
 use utils::read;
 use utils::time;
 use utils::write;
 
-use crate::utils::data_xlsx::ColumnType;
-use crate::utils::data_xlsx::DataExt;
+use data::DataOutput;
+use data::ColumnType;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::Builder::new()
@@ -22,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let file_in: &Path = Path::new("input\\test2.xlsx");
     let file_out: &Path = Path::new("output\\out2.xlsx");
     let table = "Forecast";
-    debug!("file: {:?}", file_in);
+    info!("file: {:?}", file_in);
     let formats = formats::Formats::new();
     let mut config = read::Config::new();
     // heading names/strings for currency
@@ -34,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // define a new data structure with own headings
     let num_cols: usize = 11;
-    let mut new_table = data::HeadingBuilder::new(num_cols)
+    let mut new_table = data::TableBuilder::new(num_cols)
         .add("Nr", ColumnType::Integer)
         .add("Name", ColumnType::Text)
         .add("Stunden", ColumnType::Number)
@@ -47,7 +46,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add("DurationIso", ColumnType::Duration)
         .add("DateTime", ColumnType::Time)
         .build()?;
-    info!("Headings:\n{new_table:?}");
+    debug!("Headings:\n{new_table:?}");
 
     // read excel
     let mut reader = read::TableReader::open(file_in)
@@ -59,14 +58,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (_r, _c) = reader.get_rows_and_cols(&sheet_name);
 
     let read_table = reader.read_table(table, &config)?;
-    info!("read_table direct: {:?}", read_table);
+    debug!("read_table direct: {:?}", read_table);
     info!("read_table formatted:");
     let mut idx = 0;
     for column in read_table.columns() {
         println!("----- {}/{:?} -----", column.heading(), column.col_type());
 
         for value in column.values() {
-            print!("{}; ", value.as_display_string());
+            print!("{}; ", value.as_display_string(column.col_type()));
         }
         print!("\n");
         new_table.add_column_values(idx, column.values().to_vec())?;
@@ -98,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     new_table.add_column("Perc.", ColumnType::Percentage)?;
     new_table.set_value("Perc.", 0, Data::Float(0.2))?;
     new_table.set_value("Perc.", 1, Data::Float(0.3333))?;
-    info!("new_table: {:?}", new_table);
+    debug!("new_table: {:?}", new_table);
     // replace a date
     new_table.set_value("Datum", 1, time::make_date(2026, 11, 6, false)?)?;
 
@@ -119,7 +118,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    debug!("file: {:?}", file_out);
+    info!("file: {:?}", file_out);
     writer.save(file_out)?;
 
     // mandatory columns, reuirement from FCT-3
@@ -140,7 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let read_table2 = reader.read_table(table, &config)?;
     reader.validate_columns(table, &config)?;
-    info!("read the wirtten table: {:?}", read_table2);
+    debug!("read the written table: {:?}", read_table2);
 
     Ok(())
 }
